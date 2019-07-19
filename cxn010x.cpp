@@ -34,6 +34,12 @@ void cmd_dump(uint8_t rw, uint8_t * buf, uint8_t sz){
   }
 }
 
+bool CXN_Send_Command(uint8_t * cmd, int sz){
+  Wire.beginTransmission(I2C_SONY_CXNProjector);
+  Wire.write(cmd, sz);
+  return 0 == Wire.endTransmission();
+}
+
 
 CXNProjector::CXNProjector():stat(STATE_POWER_OFF){
   m_HueU =m_HueV = m_SaturationU = m_SaturationV = m_Sharpness = m_Brightness = m_Contrast = 0;
@@ -141,19 +147,13 @@ void CXNProjector::PowerOff() {
 bool CXNProjector::StartInput()
 {
   uint8_t cmd[] = {0x01, 0x00}; 
-  uint8_t ret;
-  Wire.beginTransmission(I2C_SONY_CXNProjector);
-  Wire.write(cmd, 2);
-  return (0  == Wire.endTransmission());
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
 
 bool CXNProjector::StopInput()
 {
   uint8_t cmd[] = {0x02, 0x00}; 
-  uint8_t ret;
-  Wire.beginTransmission(I2C_SONY_CXNProjector);
-  Wire.write(cmd, 2);
-  return (0  == Wire.endTransmission());
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
 
 
@@ -165,41 +165,28 @@ bool CXNProjector::Shutdown(bool isReboot)
   }else{
     uint8_t cmd[] = {0x0B, 0x01, 0x00}; 
     cmd[2] = isReboot? 0x01:0x00;
-    Wire.beginTransmission(I2C_SONY_CXNProjector);
-    Wire.write(cmd, 3);
-    return 0 == Wire.endTransmission();
+    return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
   }
 }
 
 bool CXNProjector::GetTrubleInfo()
 {
   uint8_t cmd[] = {0xCA, 0x05, 0x01, 0x24, 0x10, 0x06, 0x00};
-  uint8_t num, i, ret;
-  Wire.beginTransmission(I2C_SONY_CXNProjector);
-  Wire.write(cmd, 7);
-  ret = Wire.endTransmission();
-  return (0 == ret);
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
 
 
 bool CXNProjector::ClearTrubleInfo()
 {
   uint8_t cmd []= {0xCB, 0x05, 0x01, 0x24, 0x10, 0x10, 0x06, 0x00, 0x00};
-  uint8_t num, i, ret;
-  Wire.beginTransmission(I2C_SONY_CXNProjector);
-  Wire.write(cmd, 9);
-  ret = Wire.endTransmission();
-  return (0 == ret);
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
 
 //获取所有图像质量信息
 bool CXNProjector::GetAllPictureQualityInfo()
 {
   uint8_t cmd[] = {0x40, 0x00}; 
-  uint8_t ret;
-  Wire.beginTransmission(I2C_SONY_CXNProjector);
-  Wire.write(cmd, 2);
-  return (0  == Wire.endTransmission());
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
 
 bool CXNProjector::SetLight(int8_t val){
@@ -214,22 +201,18 @@ bool CXNProjector::SetLight(int8_t val){
 }
 
 bool CXNProjector::GetTemperature () {
-  uint8_t cmd[] = {0xA0, 00}, buf[3], i = 0, ret;
-  Wire.beginTransmission(I2C_SONY_CXNProjector);
-  Wire.write(cmd, 3);
-
-  return 0 == Wire.requestFrom(I2C_SONY_CXNProjector, 2);
+  uint8_t cmd[] = {0xA0, 00};
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
+
 //设置锐度
 bool CXNProjector::SetSharp(int8_t val)
 {
   uint8_t cmd[] = {0x4F, 0x01, 0x00};
-  
+
   if(val < 0)val = 0;else if(val > 6) val = 6;
   cmd[3] = (uint8_t)(0xFF & val);
-  Wire.beginTransmission(I2C_SONY_CXNProjector);
-  Wire.write(cmd, 3);
-  return 0 == Wire.endTransmission();
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
 
 
@@ -240,9 +223,7 @@ bool CXNProjector::SetContrast(int8_t val)
   if(val < -15)val = 0;else if(val > 15) val = 15;
  
   cmd[2] = (uint8_t)(0xFF & val);
-  Wire.beginTransmission(I2C_SONY_CXNProjector);
-  Wire.write(cmd, 3);
-  return 0 == Wire.endTransmission();
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
 
 // 设置饱和度
@@ -250,12 +231,41 @@ bool CXNProjector::SetSaturat(int8_t val)
 {
   uint8_t cmd[] = {CXNProjector_CMD_SET_SATURATION, 0x02,0x02, 0x00};
   if(val < -15)val = 0;else if(val > 15) val = 15;
- 
   cmd[3] = (uint8_t)(0xFF & val);
-  Wire.beginTransmission(I2C_SONY_CXNProjector);
-  Wire.write(cmd, 3);
-  return 0 == Wire.endTransmission();
+
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
+
+bool CXNProjector::SetVideoPosition(){
+  uint8_t cmd[] = {0x26, 0x09, (uint8_t)m_Pan, (uint8_t)m_Tilt, (uint8_t)m_Flip, 0x64, 0x00, 0x00, 0x00, 0x00 ,0x00};
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+}
+
+//图像翻转
+bool CXNProjector::SetFlip(int8_t flip){
+  if(flip == 0 || flip == 1 || flip == 2 || flip == 3) {
+    m_Flip = flip;
+    return this->SetVideoPosition();
+  }
+  return false;
+}
+//左右梯形校正
+bool CXNProjector::SetPan(int8_t pan){
+  if(pan >= -30 && pan <=30) {
+    m_Pan = pan;
+    return this->SetVideoPosition();
+  }
+  return false;
+}
+  // 上下梯形校正
+bool CXNProjector::SetTilt(int8_t tilt){
+  if(tilt >= -20 && tilt <=30) {
+    m_Tilt= tilt;
+    return this->SetVideoPosition();
+  }
+  return false;
+}
+
 
 int CXNProjector::ReadNotify(uint8_t * data, int num)
 {
