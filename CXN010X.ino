@@ -1,6 +1,7 @@
 #include <IRremote.h>
 //#include <avr/sleep.h>
 #include <Wire.h>
+#include <time.h>
 
 #include "cxn010x.h"
 #include "HexDump.h"
@@ -14,16 +15,16 @@
 
 
 #define LED               13
-#define CMD_REQ_PIN       PD2  // PD0 INT0
+#define CMD_REQ_PIN       2  // PD0 INT0
 #define VOLTAGE_PIN       25  // PA2
-#define RECV_PIN          6   // 红外遥控
+#define RECV_PIN          PD6   // 红外遥控
 
 IRrecv irrecv(RECV_PIN);
 decode_results results;
 CXNProjector projector;
 
 uint8_t DEVICE_IS_LOCKED = 0;
-
+unsigned long g_ms = 0;
 void setup() {
 
   pinMode(LED, OUTPUT);
@@ -39,7 +40,9 @@ void setup() {
 
   Serial.begin(115200);
   Wire.begin(); //初始化I2C
-  attachInterrupt(0, OnCXNProjectorSingle, RISING);   //上升沿触发.
+
+  projector.PowerOn();
+  delay(1000);
 }
 
 // 通知引脚变化, 调用到实例中.
@@ -66,22 +69,15 @@ CXNProjector_State stat = STATE_POWER_ON;
 int sret = 0;
 void loop() {
   
-  CXNProjector_State cur = projector.GetState();
-  if(cur !=  stat){
-    switch(cur){
-     case STATE_POWER_OFF:
-      Serial.println("POWER_OFF");break;
-     case STATE_POWER_ON:
-      Serial.println("POWER_ON");break;
-     case STATE_READY:
-      Serial.println("READY");break;
-     case STATE_ACTIVE:
-      Serial.println("ACTIVE");break;
-     case STATE_MUTE:
-      Serial.println("MUTE");break;
+  //这里暂时不使用中断控制
+  if(digitalRead(2)==HIGH) {
+    Serial.println("CMD_REQ");
+    delay(10);  //等待 10ms; 如果电平还是高电平,读取通知.
+    // 循环读取,直到CMD_REQ 电平拉低了
+    while(HIGH == digitalRead(CMD_REQ_PIN)) {
+      projector.OnNotify();
     }
   }
-  stat = cur;
 
   if (irrecv.decode(&results)) {
     if (results.decode_type == NEC) {

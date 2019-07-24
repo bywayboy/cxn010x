@@ -53,6 +53,9 @@ CXNProjector::~CXNProjector(){
 void CXNProjector::OnNotify() {
   uint8_t data[32];
   int num = this->ReadNotify(data, 32);
+  if(num ==0)
+    return;
+
   switch(data[0]){
     case 0x00:
       this->OnBootNotify(&data[0], num);
@@ -136,6 +139,7 @@ void CXNProjector::OnBootNotify(uint8_t * data, int num) {
 
 void CXNProjector::PowerOn() {
   if(STATE_POWER_OFF == stat){
+    stat = STATE_POWER_ON;
     digitalWrite(CXNProjector_POWER_PIN, HIGH);
   }
 }
@@ -146,8 +150,11 @@ void CXNProjector::PowerOff() {
 
 bool CXNProjector::StartInput()
 {
-  uint8_t cmd[] = {0x01, 0x00}; 
-  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  if(STATE_ACTIVE != stat){
+    uint8_t cmd[] = {0x01, 0x00}; 
+    return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  }
+  return false;
 }
 
 bool CXNProjector::StopInput()
@@ -269,9 +276,15 @@ bool CXNProjector::SetTilt(int8_t tilt){
 
 int CXNProjector::ReadNotify(uint8_t * data, int num)
 {
-   int i = 0, ret = Wire.requestFrom(I2C_SONY_CXNProjector, num);
-   while(Wire.available()){
-      data[i++] = Wire.read();
-   }
-   return i;
+   int i, ret = Wire.requestFrom(I2C_SONY_CXNProjector, num, true);
+   for(int i=0; i < ret; i ++)
+      data[i] = Wire.read();
+   if(0 == ret){
+    Serial.println("No Data");
+    delay(30);
+    return 0;
+  }
+  HexDump(Serial, data, ret);
+  delay(30);
+  return 2 + data[1];
 }
