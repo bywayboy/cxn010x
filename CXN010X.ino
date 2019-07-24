@@ -16,7 +16,7 @@
 
 #define LED               13
 #define CMD_REQ_PIN       2  // PD0 INT0
-#define VOLTAGE_PIN       25  // PA2
+#define VOLTAGE_PIN       14  // PA0
 #define RECV_PIN          PD6   // 红外遥控
 
 IRrecv irrecv(RECV_PIN);
@@ -56,14 +56,7 @@ void OnCXNProjectorSingle(void) {
 }
 
 // 读取多少次取平均值. 增加准确度.
-float ReadVoltage(int num){
-  float voltage = 0.0;
-  int i = 0;
-  for(i=0;i<num;i++){
-    voltage += analogRead(VOLTAGE_PIN) *  (5.0 / 1023.0);
-  }
-  return voltage / i;
-}
+
 
 CXNProjector_State stat = STATE_POWER_ON;
 int sret = 0;
@@ -78,53 +71,22 @@ void loop() {
     }
   }
 
+  if(millis() - g_ms > 1000){
+    g_ms = millis();
+    float v = analogRead(VOLTAGE_PIN) *  (5.0 / 1023.0);
+    Serial.println(v);
+  }
+
   if (irrecv.decode(&results)) {
     if (results.decode_type == NEC) {
       if(results.value != -1) {
+        Serial.println(results.value,HEX);
         switch(results.value) {
-          case 0xFFA25D:  // Power ON (CH-) 自动 Start Input
-            Serial.println("Power ON");
-            break;
-          case 0xFF629D:  // Mute (CH)
-            Serial.println("Mute");
-            break;
-          case 0xFFE21D:  // CH+ 左右梯形
-            break;
-          case 0xFF22DD: // |<<  亮度
-            break;
-          case 0xFF02FD: // >>|  对比度
-            break;
-          case 0xFFC23D: // > |  对比度
-            break;
-          case 0xFF906F: // EQ  上下梯形
-            break;
-          case 0xFFA857: // +
-            break;
-          case 0xFFE01F: // -
-            break;
-          case 0xFF6897: // 0   
-            break;
-          case 0xFF9867: // 100+
-            break;
-          case 0xFFB04F: // 200+
-            break;
-          case 0xFF30CF:  // 1
-            break;
-          case 0xFF18E7:  // 2
-            break;
-          case 0xFF7A85:  // 3
-            break;
-          case 0xFF10EF:  // 4
-            break;
-          case 0xFF38C7:  // 5
-            break;
-          case 0xFF5AA5:  // 6
-            break;
-          case 0xFF42BD:  // 7
-            break;
-          case 0xFF4AB5:  // 8
-            break;
-          case 0xFF52AD:  // 9
+          case 0xDC2300FF:
+            if(STATE_POWER_OFF == projector.GetState())
+              projector.Shutdown(false);
+            else
+              projector.PowerOn();
             break;
         }
       }

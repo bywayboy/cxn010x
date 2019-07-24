@@ -76,6 +76,12 @@ void CXNProjector::OnNotify() {
         }
       }
       break;
+    case 0x0B:
+      if(data[1] == 0x01 && data[2] == 0x00){
+        // 正常关机 或者重启.
+        this->PowerOff();
+      }
+      break;
     case 0x10:  //系统检测到异常. 紧急停机 并发送此通知.
       switch(data[2]){
       case 0x80:  // 检测到激光安全模块异常, 执行紧急停机.
@@ -126,10 +132,10 @@ void CXNProjector::OnBootNotify(uint8_t * data, int num) {
       stat = STATE_READY;
       this->StartInput();
       return;
-      break;
     case 0x80:  // 发生内部故障,不能工作.
       break;
-    case 0x81:case 0x82:case 0x83:case 0x84: // 内部故障.break;
+    case 0x81:case 0x82:case 0x83:case 0x84: // 内部故障.
+      break;
     default:
       break;
     }
@@ -144,8 +150,10 @@ void CXNProjector::PowerOn() {
   }
 }
 void CXNProjector::PowerOff() {
-  if(stat == STATE_BOOT_READY_OFF)
-    digitalWrite(CXNProjector_POWER_PIN, LOW);
+  if(stat == STATE_BOOT_READY_OFF){
+    digitalWrite(CXNProjector_POWER_PIN, LOW);  //断开光机电源
+    stat = STATE_POWER_OFF;
+  }
 }
 
 bool CXNProjector::StartInput()
@@ -284,7 +292,8 @@ int CXNProjector::ReadNotify(uint8_t * data, int num)
     delay(30);
     return 0;
   }
+  ret = 2 + data[1];
   HexDump(Serial, data, ret);
   delay(30);
-  return 2 + data[1];
+  return ret;
 }
