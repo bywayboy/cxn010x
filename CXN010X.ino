@@ -71,7 +71,6 @@ void loop() {
   
   //这里暂时不使用中断控制
   if(digitalRead(2)==HIGH) {
-    Serial.println("CMD_REQ");
     delay(10);  //等待 10ms; 如果电平还是高电平,读取通知.
     // 循环读取,直到CMD_REQ 电平拉低了
     while(HIGH == digitalRead(CMD_REQ_PIN)) {
