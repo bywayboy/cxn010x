@@ -25,7 +25,7 @@ enum CXNProjector_State{
 };
 
 // 光机供电引脚接MOS管
-#define CXNProjector_POWER_PIN  12
+#define CXNProjector_POWER_PIN  17
 
 #pragma pack(1)
 class CXNProjector {

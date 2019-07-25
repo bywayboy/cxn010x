@@ -14,36 +14,35 @@
 */
 
 
-#define LED               13
-#define CMD_REQ_PIN       2  // PD0 INT0
-#define VOLTAGE_PIN       14  // PA0
-#define RECV_PIN          PD6   // 红外遥控
+#define LED               13  // LED 引脚 PD13
+#define CMD_REQ_PIN       2  // PD2 INT0
+#define VOLTAGE_PIN       14  // PA0 (电压测量引脚)
+#define RECV_PIN          PD6 // 红外遥控引脚
+
+// 注意: 光机控制引脚改用模拟引脚控制. 引脚序号 17  对应主板上的 A3 引脚
+
 
 IRrecv irrecv(RECV_PIN);
 decode_results results;
 CXNProjector projector;
 
-uint8_t DEVICE_IS_LOCKED = 0;
 unsigned long g_ms = 0;
+
 void setup() {
 
   pinMode(LED, OUTPUT);
   pinMode(CXNProjector_POWER_PIN, OUTPUT);
   pinMode(CMD_REQ_PIN, INPUT);
   pinMode(RECV_PIN, INPUT);
-  
-  irrecv.blink13(true);
+  irrecv.blink13(false);
   irrecv.enableIRIn();
-
-  digitalWrite(CXNProjector_POWER_PIN, LOW); //开机状态 不给光机供电.
-  DEVICE_IS_LOCKED = 0;
-
+  
   Serial.begin(115200);
   Wire.begin(); //初始化I2C
-
-  projector.PowerOn();
-  delay(1000);
+  analogWrite(CXNProjector_POWER_PIN, 0);
+  delay(200);
 }
+
 
 // 通知引脚变化, 调用到实例中.
 void OnCXNProjectorSingle(void) {
@@ -58,23 +57,17 @@ void OnCXNProjectorSingle(void) {
 // 读取多少次取平均值. 增加准确度.
 
 
-CXNProjector_State stat = STATE_POWER_ON;
-int sret = 0;
 void loop() {
-  
   //这里暂时不使用中断控制
-  if(digitalRead(2)==HIGH) {
-    delay(10);  //等待 10ms; 如果电平还是高电平,读取通知.
-    // 循环读取,直到CMD_REQ 电平拉低了
-    while(HIGH == digitalRead(CMD_REQ_PIN)) {
-      projector.OnNotify();
+  if(projector.GetState() != STATE_POWER_OFF) {
+    if(digitalRead(2)==HIGH) {
+      delay(10);  //等待 10ms; 如果电平还是高电平,读取通知.
+      // 循环读取,直到CMD_REQ 电平拉低了
+      while(HIGH == digitalRead(CMD_REQ_PIN)) {
+        Serial.println("CMD_REQ");
+        projector.OnNotify();
+      }
     }
-  }
-
-  if(millis() - g_ms > 1000){
-    g_ms = millis();
-    float v = analogRead(VOLTAGE_PIN) *  (5.0 / 1023.0);
-    Serial.println(v);
   }
 
   if (irrecv.decode(&results)) {
@@ -83,34 +76,23 @@ void loop() {
         Serial.println(results.value,HEX);
         switch(results.value) {
           case 0xDC2300FF:
-            if(STATE_POWER_OFF == projector.GetState())
+            Serial.println(projector.GetState(),HEX);
+            if(STATE_POWER_OFF == projector.GetState()) {
+              float v = analogRead(VOLTAGE_PIN) *  (5.0 / 1023.0);
+              if(v >= 4.8){
+                projector.PowerOn();
+                delay(50);
+              }else{
+                  Serial.println("ERR: LOW POWER!!");
+              }
+            }else{
               projector.Shutdown(false);
-            else
-              projector.PowerOn();
+              Serial.println("INF: POWER OFF!!");
+            }
             break;
         }
       }
     }
     irrecv.resume(); // Receive the next value
   }
-
-/*
-    //机器锁定了 啥也别干了.
-    if(DEVICE_IS_LOCKED)
-      return;
-    // 光机断电状态. 
-    if(digitalRead(CXNProjector_POWER_PIN) == 0) {
-      float voltage = ReadVoltage(3);
-      if(voltage >= 4.7){
-        projector.PowerOn();
-      }
-    } else {
-      // 工作状态 电压低于安全阀值 强行断电并锁定.
-      float voltage = ReadVoltage(10);
-      if(voltage < 4.0 ){
-        DEVICE_IS_LOCKED = 1; // 标记设备锁定
-        projector.PowerOff();      // 光机强行断电.
-      }
-    }
-*/
 }

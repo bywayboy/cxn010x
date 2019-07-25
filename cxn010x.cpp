@@ -7,32 +7,8 @@
 
 #define I2C_SONY_CXNProjector   0x77
 
-
-void print_char(uint8_t c){
-  char h = (c >> 4) & 0x0F, l = c & 0x0F;
-  Serial.print(char(h<=9?'0'+h:'A'+(h - 10)));
-  Serial.print(char(l<=9?'0'+l:'A'+(l - 10)));
-}
-
-
 // 部分参考
 // https://learn.adafruit.com/adafruit-seesaw-atsamd09-breakout/reading-and-writing-data
-
-void cmd_dump(uint8_t rw, uint8_t * buf, uint8_t sz){
-  Serial.print(char(rw));
-  Serial.print(' ');
-  for(int i=0; i < sz; i++){
-    char h = buf[i] >> 4, l = buf[i] & 0x0F;
-    if(i < sz-1){
-      Serial.print(char(h<=9?'0'+h:'A'+(h-10)));
-      Serial.print(char(l<=9?'0'+h:'A'+(l-10)));
-      Serial.print(' ');
-    }else {
-      Serial.print(char(h<=9?'0'+h:'A'+(h-10)));
-      Serial.println(char(l<=9?'0'+l:'A'+(l-10)));
-    }
-  }
-}
 
 bool CXN_Send_Command(uint8_t * cmd, int sz){
   Wire.beginTransmission(I2C_SONY_CXNProjector);
@@ -66,7 +42,7 @@ void CXNProjector::OnNotify() {
       }
       break;
     case 0x02: // 关闭输入
-      if(data[1] == 0x01 && data[2] == 0x00) { //停止输入成功.
+      if(data[2] == 0x00) { //停止输入成功.
         if(stat == STATE_BOOT_READY_OFF)
           this->Shutdown(false);
         else if(stat == STATE_BOOT_READY_REBOOT){
@@ -79,6 +55,7 @@ void CXNProjector::OnNotify() {
     case 0x0B:
       if(data[1] == 0x01 && data[2] == 0x00){
         // 正常关机 或者重启.
+        delay(80);
         this->PowerOff();
       }
       break;
@@ -120,7 +97,6 @@ void CXNProjector::OnNotify() {
     case 0xCB: //清除故障信息通知结果.
       break;
   }
-  //HexDump(Serial, data, num);
 }
 
 // 开机状态,TODO: 处理引导通知,如果有异常发生,清除异常.
@@ -146,12 +122,13 @@ void CXNProjector::OnBootNotify(uint8_t * data, int num) {
 void CXNProjector::PowerOn() {
   if(STATE_POWER_OFF == stat){
     stat = STATE_POWER_ON;
-    digitalWrite(CXNProjector_POWER_PIN, HIGH);
+    analogWrite(CXNProjector_POWER_PIN, 0xFF);
   }
 }
+
 void CXNProjector::PowerOff() {
   if(stat == STATE_BOOT_READY_OFF){
-    digitalWrite(CXNProjector_POWER_PIN, LOW);  //断开光机电源
+    analogWrite(CXNProjector_POWER_PIN, 0x00);  //断开光机电源
     stat = STATE_POWER_OFF;
   }
 }
@@ -177,7 +154,7 @@ bool CXNProjector::Shutdown(bool isReboot)
   if(stat == STATE_ACTIVE){
     stat = isReboot?STATE_BOOT_READY_REBOOT:STATE_BOOT_READY_OFF;
     return this->StopInput();
-  }else{
+  }else if(stat == STATE_READY || stat == STATE_BOOT_READY_OFF || stat == STATE_BOOT_READY_REBOOT){
     uint8_t cmd[] = {0x0B, 0x01, 0x00}; 
     cmd[2] = isReboot? 0x01:0x00;
     return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
