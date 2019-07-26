@@ -22,3 +22,7 @@
 光机通过 A3 引脚 连接到 MOSFET 控制光机电源开关状态.
 
 
+
+## 赞助
+
+![支付宝赞助](https://github.com/bywayboy/cxn010x/raw/master/docs/alipay.jpg)
