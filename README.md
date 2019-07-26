@@ -25,4 +25,4 @@
 
 ## 赞助
 
-![支付宝赞助](https://github.com/bywayboy/cxn010x/raw/master/docs/alipay.jpg)
+<img src="https://github.com/bywayboy/cxn010x/raw/master/docs/alipay.jpg" width="300" >
