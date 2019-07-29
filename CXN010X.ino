@@ -54,8 +54,6 @@ void OnCXNProjectorSingle(void) {
   interrupts(); //开启中断源
 }
 
-// 读取多少次取平均值. 增加准确度.
-
 
 void loop() {
   //这里暂时不使用中断控制

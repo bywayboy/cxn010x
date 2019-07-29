@@ -85,10 +85,10 @@ void CXNProjector::OnNotify() {
       if(0x0A == data[1] && 0x00==data[2]){ //数据长度 10 字节
         m_Contrast    = (int8_t)data[3];  //OP2
         m_Brightness  = (int8_t)data[4];  //OP3
-        m_HueU        = (int8_t)data[5];
-        m_HueV        = (int8_t)data[6];
-        m_SaturationU = (int8_t)data[7];
-        m_SaturationV = (int8_t)data[8];
+        m_HueU        = (uint8_t)data[5];
+        m_HueV        = (uint8_t)data[6];
+        m_SaturationU = (uint8_t)data[7];
+        m_SaturationV = (uint8_t)data[8];
         m_Sharpness   = (int8_t)data[10];
       }
       break;
@@ -219,12 +219,24 @@ bool CXNProjector::SetContrast(int8_t val)
 }
 
 // 设置饱和度
-bool CXNProjector::SetSaturat(int8_t val)
+bool CXNProjector::SetSaturation(int8_t U, int8_t V)
 {
-  uint8_t cmd[] = {CXNProjector_CMD_SET_SATURATION, 0x02,0x02, 0x00};
-  if(val < -15)val = 0;else if(val > 15) val = 15;
-  cmd[3] = (uint8_t)(0xFF & val);
+  m_SaturationU = (uint8_t)(0xFF & (int8_t)max(-15, min(15, U)));
+  m_SaturationV = (uint8_t)(0xFF & (int8_t)max(-15, min(15, V)));
 
+  uint8_t cmd[] = {0x49, 0x02, m_SaturationU,  m_SaturationV };
+  
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+}
+
+// 设置色度
+bool CXNProjector::SetHue(int8_t U, int8_t V)
+{
+  m_HueU = (uint8_t)(0xFF & (int8_t)max(-15, min(15, U)));
+  m_HueV = (uint8_t)(0xFF & (int8_t)max(-15, min(15, V)));
+
+  uint8_t cmd[] = {0x47, 0x02, m_HueU, m_HueV };
+  
   return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
 

@@ -64,8 +64,11 @@ public:
   bool SetSharp(int8_t val);
   // 设置对比度
   bool SetContrast(int8_t val);
+  
   // 设置饱和度
-  bool SetSaturat(int8_t val);
+  bool SetSaturation(int8_t U, int8_t V);
+  //设置色度
+  bool SetHue(int8_t U, int8_t V);
 
   // 图像翻转
   bool SetFlip(int8_t flip);
@@ -83,12 +86,14 @@ public:
   CXNProjector_State GetState() {return stat;};
 private:
   CXNProjector_State stat;
-  int8_t m_Contrast;    // 对比度   -15 ~ 15
-  int8_t m_Brightness;  // 亮度     -31 ~ 31
-  int8_t m_HueU;        // 色调U    -15 ~ 15
-  int8_t m_HueV;        // 色调V    -15 ~ 15
-  int8_t m_SaturationU; // 饱和度U   -15 ~ 15
-  int8_t m_SaturationV; // 饱和度V   -15 ~ 15
+  int8_t  m_Contrast;    // 对比度   -15 ~ 15
+  uint8_t m_Brightness;  // 亮度     -31 ~ 31
+  
+  uint8_t m_HueU;        // 色调U    -15 ~ 15
+  uint8_t m_HueV;        // 色调V    -15 ~ 15
+  uint8_t m_SaturationU; // 饱和度U   -15 ~ 15
+  uint8_t m_SaturationV; // 饱和度V   -15 ~ 15
+  
   int8_t m_Sharpness;   // 锐度     0~6
   
   int8_t m_Pan;         // 左右梯形校正.     -30~30
