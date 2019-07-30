@@ -2,7 +2,7 @@
 //#include <avr/sleep.h>
 #include <Wire.h>
 #include <time.h>
-
+#include <EEPROM.h>
 #include "cxn010x.h"
 #include "HexDump.h"
 
@@ -21,12 +21,13 @@
 
 // 注意: 光机控制引脚改用模拟引脚控制. 引脚序号 17  对应主板上的 A3 引脚
 
-
 IRrecv irrecv(RECV_PIN);
 decode_results results;
 CXNProjector projector;
 
 unsigned long g_ms = 0;
+
+
 
 void setup() {
 
@@ -87,6 +88,38 @@ void loop() {
               projector.Shutdown(false);
               Serial.println("INF: POWER OFF!!");
             }
+            break;
+          case 0xDC2348B7: // 右
+            projector.SetPan(+1);
+            break;
+          case 0xDC2308F7: // 左
+            projector.SetPan(-1);
+            break;
+          case 0xDC23B04F: // 上
+            projector.SetTilt(1);
+            break;
+          case 0xDC23A857: // 下
+            projector.SetTilt(-1);
+            break;
+          case 0xDC238877: // OK
+            projector.SetFlip();
+            break;
+          case 0xDC2330CF: // VOL+ 亮度+
+            projector.SetLight(+1);
+            break;
+          case 0xDC23708F: // VOL- 亮度-
+            projector.SetLight(-1);
+            break;
+          case 0xDC236897://Mute 静音
+            projector.m_Brightness = 0;
+            projector.SetLight(0);
+            break;
+          case 0xDC238A75: // 上下文(保存)
+            projector.SaveConfig();
+            break;
+          case 0xDC230AF5: //恢复所有位置信息
+            projector.m_Pan = projector.m_Tilt = projector.m_Flip = 0;
+            projector.SetVideoPosition();
             break;
         }
       }

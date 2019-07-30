@@ -24,6 +24,12 @@ enum CXNProjector_State{
     STATE_BOOT_READY_OFF = 0xFE   //光机准备好了, 可以断开电源.
 };
 
+enum CXNProjector_Act{
+  ACTION_NONE         = 0,
+  ACTION_LOAD_DEFAULT = 1,  //首次启动加载默认配置并保存.
+  ACTION_INIT_CONFIG  = 2,  //讲EEPROM的配置写入光机
+};
+
 // 光机供电引脚接MOS管
 #define CXNProjector_POWER_PIN  17
 
@@ -56,7 +62,7 @@ public:
   
   //获取所有图像质量信息
   bool GetAllPictureQualityInfo();
-  
+  bool SetAllPictureQualityInfo();
 //  bool GetTemperature ();
   //  设置亮度
   bool SetLight(int8_t val);
@@ -70,22 +76,26 @@ public:
   //设置色度
   bool SetHue(int8_t U, int8_t V);
 
-  // 图像翻转
-  bool SetFlip(int8_t flip);
+  // 图像翻转 调用一次切换一次.
+  bool SetFlip();
   // 左右梯形校正
   bool SetPan(int8_t flip);
   // 上下梯形校正
   bool SetTilt(int8_t flip);
+  bool GetVideoPosition();
   // 设置视频位置, 同时设置反转 梯形校正
   bool SetVideoPosition();
   // 处理CMD_REQ 通知
   void OnNotify();
   //特定状态通知处理
   void OnBootNotify(uint8_t * data, int num);
+  void SaveConfig();
+  bool LoadConfig();
 public:
   CXNProjector_State GetState() {return stat;};
-private:
+public:
   CXNProjector_State stat;
+  CXNProjector_Act   act; // 动作
   int8_t  m_Contrast;    // 对比度   -15 ~ 15
   uint8_t m_Brightness;  // 亮度     -31 ~ 31
   
@@ -99,6 +109,7 @@ private:
   int8_t m_Pan;         // 左右梯形校正.     -30~30
   int8_t m_Tilt;        // 上下梯形校正.     -20~30
   int8_t m_Flip;        // 反转 0 不反转 1  左右, 2 上下, 3 左右+上下
+  uint8_t m_Sharp;
 };
 
 #pragma pop() 
