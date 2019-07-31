@@ -97,18 +97,18 @@ public:
   CXNProjector_State stat;
   CXNProjector_Act   act; // 动作
   int8_t  m_Contrast;    // 对比度   -15 ~ 15
-  uint8_t m_Brightness;  // 亮度     -31 ~ 31
+  int8_t m_Brightness;  // 亮度     -31 ~ 31
   
-  uint8_t m_HueU;        // 色调U    -15 ~ 15
-  uint8_t m_HueV;        // 色调V    -15 ~ 15
-  uint8_t m_SaturationU; // 饱和度U   -15 ~ 15
-  uint8_t m_SaturationV; // 饱和度V   -15 ~ 15
+  int8_t m_HueU;        // 色调U    -15 ~ 15
+  int8_t m_HueV;        // 色调V    -15 ~ 15
+  int8_t m_SaturationU; // 饱和度U   -15 ~ 15
+  int8_t m_SaturationV; // 饱和度V   -15 ~ 15
   
   int8_t m_Sharpness;   // 锐度     0~6
   
   int8_t m_Pan;         // 左右梯形校正.     -30~30
   int8_t m_Tilt;        // 上下梯形校正.     -20~30
-  int8_t m_Flip;        // 反转 0 不反转 1  左右, 2 上下, 3 左右+上下
+  uint8_t m_Flip;        // 反转 0 不反转 1  左右, 2 上下, 3 左右+上下
   uint8_t m_Sharp;
 };
 

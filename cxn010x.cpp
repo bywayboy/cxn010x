@@ -120,9 +120,9 @@ void CXNProjector::OnNotify() {
         m_HueV        = (uint8_t)data[6];
         m_SaturationU = (uint8_t)data[7];
         m_SaturationV = (uint8_t)data[8];
-        m_Sharpness   = (int8_t)data[10];
+        m_Sharpness   = (uint8_t)data[10];//锐度(激光光斑大小.)
         if(act == ACTION_LOAD_DEFAULT){
-          this->GetVideoPosition();
+          this->GetVideoPosition(); //继续获取所有位置信息
         }
       }
       break;
@@ -252,9 +252,10 @@ bool CXNProjector::SetLight(int8_t val) {
     m_Brightness = 31;
     return false;
   }
-  
-  uint8_t cmd[] = {  , 0x01, (uint8_t)(0xFF & m_Brightness)};
+  uint8_t cmd[] = {0x43, 0x01, (uint8_t)m_Brightness};
+  //HexDump(Serial, cmd, sizeof(cmd) / sizeof(cmd[0]));
   return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  return true;
 }
 
 
@@ -382,16 +383,16 @@ void CXNProjector::SaveConfig() {
 
 bool CXNProjector::LoadConfig() {
   if(0x55 == EEPROM[0x00] && 0xAA ==EEPROM[0x01]){
-    m_Contrast    = EEPROM[0x02];
-    m_Brightness  = EEPROM[0x03];
-    m_HueU        = EEPROM[0x04];
-    m_HueV        = EEPROM[0x05];
-    m_SaturationU = EEPROM[0x06];
-    m_SaturationV = EEPROM[0x07];
-    m_Sharpness   = EEPROM[0x08];
-    m_Pan         = EEPROM[0x09];
-    m_Tilt        = EEPROM[0x0A];
-    m_Flip        = EEPROM[0x0B];
+    m_Contrast    = (int8_t)EEPROM[0x02];
+    m_Brightness  = (int8_t)EEPROM[0x03];
+    m_HueU        = (int8_t)EEPROM[0x04];
+    m_HueV        = (int8_t)EEPROM[0x05];
+    m_SaturationU = (int8_t)EEPROM[0x06];
+    m_SaturationV = (int8_t)EEPROM[0x07];
+    m_Sharpness   = (int8_t)EEPROM[0x08];
+    m_Pan         = (int8_t)EEPROM[0x09];
+    m_Tilt        = (int8_t)EEPROM[0x0A];
+    m_Flip        = (uint8_t)EEPROM[0x0B];
     m_Brightness = 0x01;
     Serial.println("Load EEPROM");
     return true;
