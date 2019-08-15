@@ -31,6 +31,7 @@ void EEPROMDump(){
 CXNProjector::CXNProjector():stat(STATE_POWER_OFF){
   act = ACTION_NONE;
   m_HueU =m_HueV = m_SaturationU = m_SaturationV = m_Sharpness = m_Brightness = m_Contrast = 0;
+  m_Mute = false;
 }
 
 CXNProjector::~CXNProjector(){
@@ -282,6 +283,14 @@ bool CXNProjector::SetContrast(int8_t val)
   if(val < -15)val = 0;else if(val > 15) val = 15;
  
   cmd[2] = (uint8_t)(0xFF & val);
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+}
+
+bool CXNProjector::Mute()
+{
+  uint8_t cmd[] = {0x03, 0x01, 0x00};
+  m_Mute = !m_Mute;
+  cmd[2] = m_Mute? 0x01:0x00;
   return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
 

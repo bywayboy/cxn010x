@@ -70,6 +70,8 @@ public:
   bool SetSharp(int8_t val);
   // 设置对比度
   bool SetContrast(int8_t val);
+
+  bool Mute();
   
   // 设置饱和度
   bool SetSaturation(int8_t U, int8_t V);
@@ -105,7 +107,7 @@ public:
   int8_t m_SaturationV; // 饱和度V   -15 ~ 15
   
   int8_t m_Sharpness;   // 锐度     0~6
-  
+  bool m_Mute;          //是否静音
   int8_t m_Pan;         // 左右梯形校正.     -30~30
   int8_t m_Tilt;        // 上下梯形校正.     -20~30
   uint8_t m_Flip;        // 反转 0 不反转 1  左右, 2 上下, 3 左右+上下
