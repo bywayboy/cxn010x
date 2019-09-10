@@ -42,7 +42,8 @@
   #define RM_VOL_DEF_BTN  0x08F78A75    //对应 3D键  恢复亮度默认
   #define RM_SAVE_BTN     0x08F75AA5    //对应鼠标键  保存配置
   #define RM_DEF_BTN      0x08F700FF    //对应返回键   恢复图像默认设置
-  #define RM_MUTE_BTN     0x08F7EF10     //关闭屏幕输出
+  #define RM_MUTE_BTN     0x08F7EF10    //关闭屏幕输出
+  #define RM_PAUSE_BTN    0x08F79A65    //暂停播放按键
 #endif
 
 #define LED               13  // LED 引脚 PD13
@@ -56,9 +57,7 @@ IRrecv irrecv(RECV_PIN);
 decode_results results;
 CXNProjector projector;
 
-unsigned long g_ms = 0;
-
-
+unsigned long g_offtime ;
 
 void setup() {
 
@@ -72,6 +71,7 @@ void setup() {
   Serial.begin(115200);
   Wire.begin(); //初始化I2C
   analogWrite(CXNProjector_POWER_PIN, 0);
+  g_offtime = 0;
   delay(200);
 }
 
@@ -110,6 +110,7 @@ void loop() {
             if(STATE_POWER_OFF == projector.GetState()) {
               float v = analogRead(VOLTAGE_PIN) *  (5.0 / 1023.0);
               if(v >= 4.8){
+                g_offtime = 0;
                 projector.PowerOn();
                 delay(50);
               }else{
@@ -160,6 +161,15 @@ void loop() {
             case RM_MUTE_BTN:
               projector.Mute();
               break;
+            case RM_PAUSE_BTN:
+              if(0 == g_offtime){
+                g_offtime = millis() + (60000 * 30);  //延时半小时
+                delay(60);
+              }else{
+                g_offtime +=(60000 * 30);  //延时半小时
+                delay(60);
+              }
+              break;
 #endif
           }
         } // if
@@ -167,4 +177,13 @@ void loop() {
     }
     irrecv.resume(); // Receive the next value
   }
+  if(STATE_POWER_OFF != projector.GetState()) {
+    if(g_offtime > 0) {
+      if(millis() > g_offtime) {
+        g_offtime = 0;
+        projector.Shutdown(false);
+      }
+    }
+  }
+  
 }
