@@ -14,10 +14,13 @@
 */
 #define REMOUTE_RC_100  1
 #define REMOUTE_DEFAULT 2
+#define REMOUTE_COOCAA  3 //酷开遥控器
 
-#define REMOUTE_MODEL    REMOUTE_DEFAULT
+//#define REMOUTE_MODEL    REMOUTE_DEFAULT
+#define REMOUTE_MODEL     REMOUTE_COOCAA
 
 #if REMOUTE_MODEL == REMOUTE_RC_100
+  #define RM_DECODE_TYPE  NEC
   #define RM_POWER_BTN    0xDC2300FF
   #define RM_RIGHT_BTN    0xDC2348B7
   #define RM_LEFT_BTN     0xDC2308F7
@@ -31,6 +34,7 @@
   #define RM_SAVE_BTN     0xDC238A75    //对应上下文(菜单)
   #define RM_DEF_BTN      0xDC230AF5    //对应返回键   恢复图像默认设置
 #elif REMOUTE_MODEL == REMOUTE_DEFAULT
+  #define RM_DECODE_TYPE  NEC
   #define RM_POWER_BTN    0x08F7BA45
   #define RM_RIGHT_BTN    0X08F7807F
   #define RM_LEFT_BTN     0x08F7E01F
@@ -44,6 +48,21 @@
   #define RM_DEF_BTN      0x08F700FF    //对应返回键   恢复图像默认设置
   #define RM_MUTE_BTN     0x08F7EF10    //关闭屏幕输出
   #define RM_PAUSE_BTN    0x08F79A65    //暂停播放按键
+#elif REMOUTE_MODEL == REMOUTE_COOCAA
+  #define RM_DECODE_TYPE  SAMSUNG
+  #define RM_POWER_BTN    0x707030CF
+  #define RM_RIGHT_BTN    0x7070A25D
+  #define RM_LEFT_BTN     0x707022DD
+  #define RM_UP_BTN       0x707042BD
+  #define RM_DOWN_BTN     0x7070C23D
+  #define RM_OK_BTN       0x7070629D
+  #define RM_SAVE_BTN     0x70708877
+  #define RM_DEF_BTN      0x7070DA25
+  #define RM_VOL_UP_BTN   0x707028D7    //对应音量减
+  #define RM_VOL_DOWN_BTN 0x7070A857    //对应音量加
+  #define RM_VOL_DEF_BTN  0x00000000    //不存在该按键
+  #define RM_PAUSE_BTN    0x70701EE1    //对应Home 按键 定时关机
+  #define RM_MUTE_BTN     0x7070B04F    //静音按键 关闭屏幕
 #endif
 
 #define LED               13  // LED 引脚 PD13
@@ -101,7 +120,7 @@ void loop() {
   }
 
   if (irrecv.decode(&results)) {
-    if (results.decode_type == NEC) {
+    if (results.decode_type == RM_DECODE_TYPE) {
       if(results.value != -1) {
         Serial.println(results.value,HEX);
         switch(results.value) {
@@ -157,7 +176,7 @@ void loop() {
               projector.m_Pan = projector.m_Tilt = projector.m_Flip = 0;
               projector.SetVideoPosition();
               break;
-#if REMOUTE_MODEL == REMOUTE_DEFAULT
+#if REMOUTE_MODEL != REMOUTE_RC_100
             case RM_MUTE_BTN:
               projector.Mute();
               break;
@@ -174,6 +193,11 @@ void loop() {
           }
         } // if
       }
+    }else{
+      
+      Serial.print(results.decode_type,HEX);
+      Serial.print("-");
+      Serial.println(results.value,HEX);
     }
     irrecv.resume(); // Receive the next value
   }
