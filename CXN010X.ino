@@ -12,6 +12,12 @@
  *  引脚定义表:
       IIC1 PA4 SDA    PA5 SCL
 */
+
+
+
+
+
+
 #define REMOUTE_RC_100  1
 #define REMOUTE_DEFAULT 2
 #define REMOUTE_COOCAA  3 //酷开遥控器
@@ -61,8 +67,13 @@
   #define RM_VOL_UP_BTN   0x707028D7    //对应音量减
   #define RM_VOL_DOWN_BTN 0x7070A857    //对应音量加
   #define RM_VOL_DEF_BTN  0x00000000    //不存在该按键
-  #define RM_PAUSE_BTN    0x70701EE1    //对应Home 按键 定时关机
+
+  #define RM_PAUSE_BTN    0x70701EE1    //对应Home 按键 定时关机 按一次 定时30分钟
+
   #define RM_MUTE_BTN     0x7070B04F    //静音按键 关闭屏幕
+  #define RM_LONG_HOME    0x70700AF5    //长按Home键, 进入相位校准
+  #define RM_LONG_MENU    0x7070A15E    //长按菜单键 (进入光轴校准)  1,2 红纵横, 3,4 绿纵横, 5,6 蓝纵横
+  #define RM_LONG_RETURN  0X7070D827    //长按返回键 (退出光轴/相位校准)
 #endif
 
 #define LED               13  // LED 引脚 PD13
@@ -106,6 +117,7 @@ void OnCXNProjectorSingle(void) {
 }
 
 
+CXNProjector_State gstat;
 void loop() {
   //这里暂时不使用中断控制
   if(projector.GetState() != STATE_POWER_OFF) {
@@ -141,8 +153,10 @@ void loop() {
             }
             break;
         }
+
+        gstat = projector.GetState();
         //关机状态 下列遥控指令不响应!
-        if(STATE_POWER_OFF != projector.GetState()) {
+        if(STATE_POWER_OFF != gstat) {
           switch(results.value) {
             case RM_RIGHT_BTN: // 右
               projector.SetPan(+1);
@@ -160,10 +174,30 @@ void loop() {
               projector.SetFlip();
               break;
             case RM_VOL_UP_BTN: // VOL+ 亮度+
-              projector.SetLight(+1);
+              switch(gstat){
+              case STATE_OPTICAL:
+                projector.OpticalAxisPlus();
+                break;
+              case STATE_BIPHASE:
+                projector.BiphasePlus();
+                break;
+              default:
+                projector.SetLight(+1);
+                break;
+              }
               break;
             case RM_VOL_DOWN_BTN: // VOL- 亮度-
-              projector.SetLight(-1);
+              switch(gstat){
+              case STATE_OPTICAL:
+                projector.OpticalAxisMinus();
+                break;
+              case STATE_BIPHASE:
+                projector.BiphaseMinus();
+                break;
+              default:
+                projector.SetLight(-1);
+                break;
+              }
               break;
             case RM_VOL_DEF_BTN://
               projector.m_Brightness = 0;
@@ -189,6 +223,20 @@ void loop() {
                 delay(60);
               }
               break;
+#endif
+#if REMOUTE_MODEL == REMOUTE_COOCAA
+          case RM_LONG_HOME:      //长按Home键, 进入相位校准
+            projector.EasyOpticalAxisSet();
+            break;
+          case RM_LONG_MENU:    //长按菜单键 (进入光轴校准)  1,2 红纵横, 3,4 绿纵横, 5,6 蓝纵横
+            projector.EasyBiphaseSet();
+            break;
+          case RM_LONG_RETURN:   //长按返回键 (退出光轴/相位校准)
+            if(gstat ==STATE_OPTICAL)
+              projector.EasyOpticalAxisExit(1);
+            else if(gstat == STATE_BIPHASE)
+              projector.EasyBiphaseExit(1);
+            break;
 #endif
           }
         } // if

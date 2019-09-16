@@ -19,7 +19,11 @@ enum CXNProjector_State{
     STATE_POWER_ON    = 1,  //光机开机状态.
     STATE_READY       = 2,  //光机引导完成.
     STATE_ACTIVE      = 3,  //光机开启了视频输入.
-    STATE_MUTE        = 4,  //光机静音(黑屏)状态
+    STATE_MUTE        = 4,  //光机静音(黑屏)状态,
+    STATE_OPTICAL     = 5,  //光轴校准状态,
+    STATE_BIPHASE     = 6,  //相位校准状态,
+    STATE_READY_OPTICAL = 7,  //准备进入光轴校准状态.
+    STATE_READY_BIPHASE = 8,  //准备进入位校准状态.
     STATE_BOOT_READY_REBOOT = 0xFD, //
     STATE_BOOT_READY_OFF = 0xFE   //光机准备好了, 可以断开电源.
 };
@@ -27,7 +31,7 @@ enum CXNProjector_State{
 enum CXNProjector_Act{
   ACTION_NONE         = 0,
   ACTION_LOAD_DEFAULT = 1,  //首次启动加载默认配置并保存.
-  ACTION_INIT_CONFIG  = 2,  //讲EEPROM的配置写入光机
+  ACTION_INIT_CONFIG  = 2,  //将EEPROM的配置写入光机
 };
 
 // 光机供电引脚接MOS管
@@ -87,6 +91,39 @@ public:
   bool GetVideoPosition();
   // 设置视频位置, 同时设置反转 梯形校正
   bool SetVideoPosition();
+
+/*
+第1次：开始轻松光轴调整，切换到垂直光轴调整画面并控制两条红线。
+第2次：切换到水平光轴调整画面并控制两条红线。
+第3次：切换到垂直光轴调整画面并控制两条绿线。
+第4次：切换到水平光轴调整画面并控制两条绿线。
+第5次：切换到垂直光轴调整画面并控制为参考红色和调整绿色（两行）。
+第6次：切换到水平光轴调整画面并控制为参考红色和调整绿色（两行）。
+第7次：切换到垂直光轴调整画面并控制为参考红蓝。
+第8次：切换到水平光轴调整画面并控制为参考红蓝。
+第9次：保存更改内容并结束控制。
+*/
+  bool EasyOpticalAxisSet();
+  // +1
+  bool OpticalAxisPlus();
+  // -1
+  bool OpticalAxisMinus();
+  /* 
+   *  结束设定 save==0 不保存
+   */
+  bool EasyOpticalAxisExit(uint8_t save);
+
+  /**
+   * 进入相位校准
+   * 第一次: 开始简单相位校准
+   * 第二次: 结束并保存相位校准
+   */
+  bool EasyBiphaseSet();
+
+  bool BiphasePlus();
+  bool BiphaseMinus();
+  bool EasyBiphaseExit(uint8_t save);
+  
   // 处理CMD_REQ 通知
   void OnNotify();
   //特定状态通知处理

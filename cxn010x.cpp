@@ -56,12 +56,21 @@ void CXNProjector::OnNotify() {
       break;
     case 0x02: // 关闭输入
       if(data[2] == 0x00) { //停止输入成功.
-        if(stat == STATE_BOOT_READY_OFF)
+        switch(stat){
+        case STATE_BOOT_READY_OFF:
           this->Shutdown(false);
-        else if(stat == STATE_BOOT_READY_REBOOT){
+          break;
+        case STATE_BOOT_READY_REBOOT:
           this->Shutdown(true);
-        } else {
+        case STATE_READY_OPTICAL:
+          this->EasyOpticalAxisSet();
+          break;
+        case STATE_READY_BIPHASE:
+          this->EasyBiphaseSet();
+          break;
+        default:
           stat = STATE_READY;
+          break;
         }
       }
       break;
@@ -71,6 +80,26 @@ void CXNProjector::OnNotify() {
         delay(80);
         this->PowerOff();
       }
+      break;
+    case 0x32:  //进入光轴校准.
+      if(0x00 == data[2]){
+        stat = STATE_OPTICAL;
+      }else{
+        this->StartInput();
+      }
+      break;
+    case 0x35:  //退出光轴校准
+      this->StartInput();
+      break;
+    case 0x36:  //进入相位校准
+      if(0x00 == data[2]){
+        stat = STATE_BIPHASE;
+      }else{
+        this->StartInput();
+      }
+      break;
+    case 0x39:  //退出相位校准
+      this->StartInput();
       break;
     case 0x10:  //系统检测到异常. 紧急停机 并发送此通知.
       switch(data[2]){
@@ -327,6 +356,74 @@ bool CXNProjector::SetVideoPosition(){
   return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
 }
 
+bool CXNProjector::EasyOpticalAxisSet()
+{
+  if(stat == STATE_ACTIVE){
+    stat = STATE_READY_OPTICAL;
+    this->StopInput();
+  }else{
+    uint8_t cmd[2] = {0x32, 0x00};
+    return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  }
+}
+
+bool CXNProjector::OpticalAxisPlus(){
+  if(stat == STATE_OPTICAL){
+    uint8_t cmd[2] = {0x33, 0x00};
+    return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  }
+  return false;
+}
+
+bool CXNProjector::OpticalAxisMinus(){
+  if(stat == STATE_OPTICAL){
+    uint8_t cmd[2] = {0x34, 0x00};
+    return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  }
+  return false;
+}
+
+bool CXNProjector::EasyOpticalAxisExit(uint8_t save){
+  if(stat == STATE_OPTICAL){
+    uint8_t cmd[3] = {0x35, 0x01, 0x00};
+    cmd[2] = save==0?0x01:0x00;
+    return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  }
+  return false;
+}
+
+bool CXNProjector::EasyBiphaseSet(){
+  if(stat == STATE_ACTIVE){
+    stat = STATE_READY_BIPHASE;
+    return this->StopInput();  
+  }
+  uint8_t cmd[2] = {0x36, 0x00};
+  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+}
+
+bool CXNProjector::BiphasePlus(){
+  if(stat == STATE_BIPHASE){
+    uint8_t cmd[2] = {0x37, 0x00};
+    return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  }
+  return false;
+}
+
+bool CXNProjector::BiphaseMinus(){
+  if(stat == STATE_BIPHASE){
+    uint8_t cmd[2] = {0x38, 0x00};
+    return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  }
+}
+
+bool CXNProjector::EasyBiphaseExit(uint8_t save){
+  if(stat == STATE_BIPHASE){
+    uint8_t cmd[3] = {0x39, 0x01,0x00};
+    cmd[2] = save==0?0x01:0x00;
+    return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  }
+  return false;
+}
 
 //图像翻转
 bool CXNProjector::SetFlip(){
