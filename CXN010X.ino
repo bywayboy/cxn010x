@@ -13,6 +13,9 @@
       IIC1 PA4 SDA    PA5 SCL
 */
 
+/*
+  Arduino NANO 3 5 6 9  可以输出PWM 分别对应 PD3,D5,D6,D9 引脚
+*/
 
 
 
@@ -77,9 +80,9 @@
 #endif
 
 #define LED               13  // LED 引脚 PD13
-#define CMD_REQ_PIN       2  // PD2 INT0
-#define VOLTAGE_PIN       14  // PA0 (电压测量引脚)
-#define RECV_PIN          PD6 // 红外遥控引脚
+#define CMD_REQ_PIN       2   // D2 INT0
+#define VOLTAGE_PIN       14  // A0 (电压测量引脚)
+#define RECV_PIN          6   // D6 红外遥控引脚
 
 // 注意: 光机控制引脚改用模拟引脚控制. 引脚序号 17  对应主板上的 A3 引脚
 
@@ -87,12 +90,13 @@ IRrecv irrecv(RECV_PIN);
 decode_results results;
 CXNProjector projector;
 
-unsigned long g_offtime ;
-
+unsigned long g_offtime, g_last_gettemp_tm;
 void setup() {
 
   pinMode(LED, OUTPUT);
-  pinMode(CXNProjector_POWER_PIN, OUTPUT);
+  pinMode(CXNProjector_FAN_PIN, OUTPUT); 
+  //pinMode(CXNProjector_POWER_PIN, OUTPUT);
+  
   pinMode(CMD_REQ_PIN, INPUT);
   pinMode(RECV_PIN, INPUT);
   irrecv.blink13(false);
@@ -101,8 +105,9 @@ void setup() {
   Serial.begin(115200);
   Wire.begin(); //初始化I2C
   analogWrite(CXNProjector_POWER_PIN, 0);
-  g_offtime = 0;
-  delay(200);
+  //analogWrite(CXNProjector_FAN_PIN, 0x80);
+  g_last_gettemp_tm = g_offtime = 0;
+  delay(150);
 }
 
 
@@ -250,6 +255,11 @@ void loop() {
     irrecv.resume(); // Receive the next value
   }
   if(STATE_POWER_OFF != projector.GetState()) {
+    //定时获取光机温度
+    if(millis() - g_last_gettemp_tm > 10000){
+      g_last_gettemp_tm = millis();
+      projector.GetTemperature();
+    }
     if(g_offtime > 0) {
       if(millis() > g_offtime) {
         g_offtime = 0;

@@ -27,7 +27,6 @@ void EEPROMDump(){
 }
 
 
-
 CXNProjector::CXNProjector():stat(STATE_POWER_OFF){
   act = ACTION_NONE;
   m_HueU =m_HueV = m_SaturationU = m_SaturationV = m_Sharpness = m_Brightness = m_Contrast = 0;
@@ -37,6 +36,10 @@ CXNProjector::CXNProjector():stat(STATE_POWER_OFF){
 CXNProjector::~CXNProjector(){
 
 }
+
+//                      0.4  0.5, 0.6   0.7, 0.8, 0.9 1.0
+uint8_t pwm_speed [] = {102, 128, 153, 180, 204, 230, 255};
+uint8_t pwm_temp [] =  {32,   34, 36,   38, 40,   42,  44};
 
 // 当 CMD_REQ 引脚 = 1 读取通知
 void CXNProjector::OnNotify() {
@@ -80,6 +83,22 @@ void CXNProjector::OnNotify() {
         delay(80);
         this->PowerOff();
       }
+      break;
+    case 0xA0:  //光机获取温度结果通知.
+      if(data[2] == 0x00 && 0xFF != data[3]){
+        uint8_t tp = data[3], fan_speed = 0x00;
+        for(uint8_t i= 6; i >=0; i--){
+          if(tp >= pwm_temp[i]){
+            fan_speed = pwm_speed[i];
+            break;
+          }
+        }
+        analogWrite(CXNProjector_FAN_PIN, fan_speed);  //设定风扇速度
+        Serial.print("SPEED:");
+        Serial.print(fan_speed, HEX);
+        Serial.print(" TEMP:");
+        Serial.println(tp, HEX);
+      }      
       break;
     case 0x32:  //进入光轴校准.
       if(0x00 == data[2]){
@@ -203,13 +222,17 @@ void CXNProjector::OnBootNotify(uint8_t * data, int num) {
 void CXNProjector::PowerOn() {
   if(STATE_POWER_OFF == stat){
     stat = STATE_POWER_ON;
-    analogWrite(CXNProjector_POWER_PIN, 0xFF);
+    digitalWrite(CXNProjector_POWER_PIN, 0xFF);
+    
+    analogWrite(CXNProjector_FAN_PIN,   0xFF);
   }
 }
 
 void CXNProjector::PowerOff() {
   if(stat == STATE_BOOT_READY_OFF){
-    analogWrite(CXNProjector_POWER_PIN, 0x00);  //断开光机电源
+    digitalWrite(CXNProjector_POWER_PIN, 0x00);  //断开光机电源
+    
+    analogWrite(CXNProjector_FAN_PIN,0x00);     //断开风扇电源
     stat = STATE_POWER_OFF;
   }
 }

@@ -14,6 +14,7 @@ enum{
   CXNProjector_CMD_SET_SHARP      = 0X4F, // 设置锐度:    范围: 0   到 6
 };
 
+
 enum CXNProjector_State{
     STATE_POWER_OFF   = 0,  //光机断电状态.
     STATE_POWER_ON    = 1,  //光机开机状态.
@@ -36,6 +37,7 @@ enum CXNProjector_Act{
 
 // 光机供电引脚接MOS管
 #define CXNProjector_POWER_PIN  17
+#define CXNProjector_FAN_PIN    5
 
 #pragma pack(1)
 class CXNProjector {
