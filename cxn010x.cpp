@@ -30,16 +30,16 @@ void EEPROMDump(){
 CXNProjector::CXNProjector():stat(STATE_POWER_OFF){
   act = ACTION_NONE;
   m_HueU =m_HueV = m_SaturationU = m_SaturationV = m_Sharpness = m_Brightness = m_Contrast = 0;
-  m_Mute = false;
+  m_busy = m_Mute = false;
 }
 
 CXNProjector::~CXNProjector(){
 
 }
 
-//                      0.4  0.5, 0.6   0.7, 0.8, 0.9 1.0
-uint8_t pwm_speed [] = {102, 128, 153, 180, 204, 230, 255};
-uint8_t pwm_temp [] =  {32,   34, 36,   38, 40,   42,  44};
+//                      0.7  0.75, 0.8   0.85, 0.9, 0.95 1.0
+uint8_t pwm_speed [] = {180, 191, 204, 217, 229, 240, 255}; //风扇速度
+uint8_t pwm_temp [] =  {32,   34, 36,   38, 40,   42,  44}; //温度
 
 // 当 CMD_REQ 引脚 = 1 读取通知
 void CXNProjector::OnNotify() {
@@ -78,6 +78,7 @@ void CXNProjector::OnNotify() {
       }
       break;
     case 0x0B:
+      m_busy = false;
       if(data[1] == 0x01 && data[2] == 0x00){
         // 正常关机 或者重启.
         delay(80);
@@ -85,6 +86,7 @@ void CXNProjector::OnNotify() {
       }
       break;
     case 0xA0:  //光机获取温度结果通知.
+      m_busy = false;
       if(data[2] == 0x00 && 0xFF != data[3]){
         uint8_t tp = data[3], fan_speed = 0x00;
         for(uint8_t i= 6; i >=0; i--){
@@ -94,11 +96,7 @@ void CXNProjector::OnNotify() {
           }
         }
         analogWrite(CXNProjector_FAN_PIN, fan_speed);  //设定风扇速度
-        Serial.print("SPEED:");
-        Serial.print(fan_speed, HEX);
-        Serial.print(" TEMP:");
-        Serial.println(tp, HEX);
-      }      
+      }
       break;
     case 0x32:  //进入光轴校准.
       if(0x00 == data[2]){
@@ -255,13 +253,17 @@ bool CXNProjector::StopInput()
 
 bool CXNProjector::Shutdown(bool isReboot)
 {
+
+  if(m_busy)
+    return false;
+
   if(stat == STATE_ACTIVE){
     stat = isReboot?STATE_BOOT_READY_REBOOT:STATE_BOOT_READY_OFF;
     return this->StopInput();
   }else if(stat == STATE_READY || stat == STATE_BOOT_READY_OFF || stat == STATE_BOOT_READY_REBOOT){
     uint8_t cmd[] = {0x0B, 0x01, 0x00}; 
     cmd[2] = isReboot? 0x01:0x00;
-    return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+    return (m_busy = (0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]))));
   }
 }
 
@@ -314,7 +316,17 @@ bool CXNProjector::SetLight(int8_t val) {
 
 bool CXNProjector::GetTemperature () {
   uint8_t cmd[] = {0xA0, 00};
-  return 0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]));
+  if(m_busy)
+    return false;
+
+  switch(stat){
+    case STATE_ACTIVE:
+    case STATE_READY:
+      return (m_busy = (0 == CXN_Send_Command(cmd, sizeof(cmd) / sizeof(cmd[0]))));
+    default:
+      break;
+  }
+  return true;
 }
 
 //设置锐度

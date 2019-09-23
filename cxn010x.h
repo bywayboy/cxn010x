@@ -151,6 +151,7 @@ public:
   int8_t m_Tilt;        // 上下梯形校正.     -20~30
   uint8_t m_Flip;        // 反转 0 不反转 1  左右, 2 上下, 3 左右+上下
   uint8_t m_Sharp;
+  bool m_busy;
 };
 
 #pragma pop() 

@@ -136,17 +136,18 @@ void loop() {
     }
   }
 
+  gstat = projector.GetState();
   if (irrecv.decode(&results)) {
     if (results.decode_type == RM_DECODE_TYPE) {
       if(results.value != -1) {
         Serial.println(results.value,HEX);
         switch(results.value) {
           case RM_POWER_BTN:
-            Serial.println(projector.GetState(),HEX);
-            if(STATE_POWER_OFF == projector.GetState()) {
+            if(STATE_POWER_OFF == gstat) {
               float v = analogRead(VOLTAGE_PIN) *  (5.0 / 1023.0);
               if(v >= 4.8){
                 g_offtime = 0;
+                g_last_gettemp_tm = millis() - 5000;
                 projector.PowerOn();
                 delay(50);
               }else{
@@ -159,7 +160,6 @@ void loop() {
             break;
         }
 
-        gstat = projector.GetState();
         //关机状态 下列遥控指令不响应!
         if(STATE_POWER_OFF != gstat) {
           switch(results.value) {
