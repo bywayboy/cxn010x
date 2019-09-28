@@ -18,9 +18,6 @@
 */
 
 
-
-
-
 #define REMOUTE_RC_100  1
 #define REMOUTE_DEFAULT 2
 #define REMOUTE_COOCAA  3 //酷开遥控器
@@ -81,8 +78,10 @@
 
 #define LED               13  // LED 引脚 PD13
 #define CMD_REQ_PIN       2   // D2 INT0
+#define FAN_SPEED_PIN     3   // D3 风扇引脚
 #define VOLTAGE_PIN       14  // A0 (电压测量引脚)
 #define RECV_PIN          6   // D6 红外遥控引脚
+
 
 // 注意: 光机控制引脚改用模拟引脚控制. 引脚序号 17  对应主板上的 A3 引脚
 
@@ -90,26 +89,38 @@ IRrecv irrecv(RECV_PIN);
 decode_results results;
 CXNProjector projector;
 
-unsigned long g_offtime, g_last_gettemp_tm;
+unsigned long g_offtime, g_last_gettemp_tm, timeold;
+int32_t half_revolutions;
+int32_t rpm;
 void setup() {
 
   pinMode(LED, OUTPUT);
-  pinMode(CXNProjector_FAN_PIN, OUTPUT); 
-  //pinMode(CXNProjector_POWER_PIN, OUTPUT);
-  
   pinMode(CMD_REQ_PIN, INPUT);
+  pinMode(FAN_SPEED_PIN, INPUT);
   pinMode(RECV_PIN, INPUT);
+  
   irrecv.blink13(false);
   irrecv.enableIRIn();
   
   Serial.begin(115200);
+  //Wire.setClock(10000);
   Wire.begin(); //初始化I2C
-  analogWrite(CXNProjector_POWER_PIN, 0);
-  //analogWrite(CXNProjector_FAN_PIN, 0x80);
-  g_last_gettemp_tm = g_offtime = 0;
+  
+  analogWrite(CXNProjector_POWER_PIN, 0x00);
+  analogWrite(CXNProjector_FAN_PIN, 0x00);
+  g_last_gettemp_tm = g_offtime = timeold = 0;
+  half_revolutions = 0;
+  rpm = 0;
+  attachInterrupt(1, FanSpeedCounter, FALLING);
   delay(150);
 }
 
+
+
+void FanSpeedCounter()
+{
+  half_revolutions++;
+}
 
 // 通知引脚变化, 调用到实例中.
 void OnCXNProjectorSingle(void) {
@@ -133,6 +144,17 @@ void loop() {
         Serial.println("CMD_REQ");
         projector.OnNotify();
       }
+    }
+
+    //风扇测速
+    if(millis() - timeold >= 6000){
+      rpm = half_revolutions * (60000 / (millis() - timeold));
+      timeold = millis();
+      Serial.print("RPM =\t"); //print the word "RPM" and tab.
+      Serial.print(rpm); // print the rpm value.
+      Serial.print("\t Hz=\t"); //print the word "Hz".
+      Serial.println(half_revolutions); //print revolutions per second or Hz. And print new line or enter.
+      half_revolutions = 0; 
     }
   }
 

@@ -31,6 +31,7 @@ CXNProjector::CXNProjector():stat(STATE_POWER_OFF){
   act = ACTION_NONE;
   m_HueU =m_HueV = m_SaturationU = m_SaturationV = m_Sharpness = m_Brightness = m_Contrast = 0;
   m_busy = m_Mute = false;
+  stat = STATE_POWER_OFF;
 }
 
 CXNProjector::~CXNProjector(){
@@ -39,7 +40,7 @@ CXNProjector::~CXNProjector(){
 
 //                      0.7  0.75, 0.8   0.85, 0.9, 0.95 1.0
 uint8_t pwm_speed [] = {180, 191, 204, 217, 229, 240, 255}; //风扇速度
-uint8_t pwm_temp [] =  {32,   34, 36,   38, 40,   42,  44}; //温度
+uint8_t pwm_temp [] =  {30,   32, 34,   36, 38,   40,  42}; //温度
 
 // 当 CMD_REQ 引脚 = 1 读取通知
 void CXNProjector::OnNotify() {
@@ -220,16 +221,14 @@ void CXNProjector::OnBootNotify(uint8_t * data, int num) {
 void CXNProjector::PowerOn() {
   if(STATE_POWER_OFF == stat){
     stat = STATE_POWER_ON;
-    digitalWrite(CXNProjector_POWER_PIN, 0xFF);
-    
+    analogWrite(CXNProjector_POWER_PIN, 0xFF);
     analogWrite(CXNProjector_FAN_PIN,   0xFF);
   }
 }
 
 void CXNProjector::PowerOff() {
   if(stat == STATE_BOOT_READY_OFF){
-    digitalWrite(CXNProjector_POWER_PIN, 0x00);  //断开光机电源
-    
+    analogWrite(CXNProjector_POWER_PIN, 0x00);  //断开光机电源
     analogWrite(CXNProjector_FAN_PIN,0x00);     //断开风扇电源
     stat = STATE_POWER_OFF;
   }
