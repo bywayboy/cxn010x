@@ -46,8 +46,9 @@ uint8_t pwm_temp [] =  {30,   32, 34,   36, 38,   40,  42}; //温度
 void CXNProjector::OnNotify() {
   uint8_t data[32];
   int num = this->ReadNotify(data, 32);
-  if(num ==0)
+  if(num ==0){
     return;
+  }
 
   switch(data[0]){
     case 0x00:
@@ -96,7 +97,7 @@ void CXNProjector::OnNotify() {
             break;
           }
         }
-        analogWrite(CXNProjector_FAN_PIN, fan_speed);  //设定风扇速度
+        //analogWrite(CXNProjector_FAN_PIN, fan_speed);  //设定风扇速度
       }
       break;
     case 0x32:  //进入光轴校准.
@@ -501,7 +502,7 @@ int CXNProjector::ReadNotify(uint8_t * data, int num)
   }
   ret = 2 + data[1];
   HexDump(Serial, data, ret);
-  delay(30);
+  delay(3);
   return ret;
 }
 

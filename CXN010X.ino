@@ -90,8 +90,10 @@ decode_results results;
 CXNProjector projector;
 
 unsigned long g_offtime, g_last_gettemp_tm, timeold;
-int32_t half_revolutions;
-int32_t rpm;
+//int32_t half_revolutions;
+//int32_t rpm;
+uint32_t last_btn;
+uint8_t press_counter;
 void setup() {
 
   pinMode(LED, OUTPUT);
@@ -109,18 +111,20 @@ void setup() {
   analogWrite(CXNProjector_POWER_PIN, 0x00);
   analogWrite(CXNProjector_FAN_PIN, 0x00);
   g_last_gettemp_tm = g_offtime = timeold = 0;
-  half_revolutions = 0;
-  rpm = 0;
-  attachInterrupt(1, FanSpeedCounter, FALLING);
-  delay(150);
+  press_counter = 0;
+  last_btn = 0;
+  //half_revolutions = 0;
+  //rpm = 0;
+  //attachInterrupt(1, FanSpeedCounter, FALLING);
 }
 
 
-
+/*
 void FanSpeedCounter()
 {
   half_revolutions++;
 }
+*/
 
 // 通知引脚变化, 调用到实例中.
 void OnCXNProjectorSingle(void) {
@@ -138,14 +142,14 @@ void loop() {
   //这里暂时不使用中断控制
   if(projector.GetState() != STATE_POWER_OFF) {
     if(digitalRead(2)==HIGH) {
-      delay(10);  //等待 10ms; 如果电平还是高电平,读取通知.
+      delay(15);  //等待 10ms; 如果电平还是高电平,读取通知.
       // 循环读取,直到CMD_REQ 电平拉低了
       while(HIGH == digitalRead(CMD_REQ_PIN)) {
         Serial.println("CMD_REQ");
         projector.OnNotify();
       }
     }
-
+    /*
     //风扇测速
     if(millis() - timeold >= 6000){
       rpm = half_revolutions * (60000 / (millis() - timeold));
@@ -156,6 +160,7 @@ void loop() {
       Serial.println(half_revolutions); //print revolutions per second or Hz. And print new line or enter.
       half_revolutions = 0; 
     }
+    */
   }
 
   gstat = projector.GetState();
@@ -184,6 +189,8 @@ void loop() {
 
         //关机状态 下列遥控指令不响应!
         if(STATE_POWER_OFF != gstat) {
+          last_btn = results.value;
+          press_counter = 0;
           switch(results.value) {
             case RM_RIGHT_BTN: // 右
               projector.SetPan(+1);
@@ -269,10 +276,34 @@ void loop() {
         } // if
       }
     }else{
-      
-      Serial.print(results.decode_type,HEX);
-      Serial.print("-");
-      Serial.println(results.value,HEX);
+#if REMOUTE_MODEL == REMOUTE_COOCAA //针对部分不支持长按的遥控器的补丁代码.
+      if(STATE_POWER_OFF != gstat) {
+        if(0xFFFFFFFF == results.decode_type && results.value == 0x4AB0F7B6){
+          press_counter++;
+          if(press_counter == 6){
+            press_counter = 0;
+            switch(last_btn){
+            case RM_PAUSE_BTN: //长按Home键, 进入相位校准
+              projector.EasyOpticalAxisSet();
+              break;
+            case RM_DEF_BTN:
+              if(gstat ==STATE_OPTICAL)
+                projector.EasyOpticalAxisExit(1);
+              else if(gstat == STATE_BIPHASE)
+                projector.EasyBiphaseExit(1);
+              break;
+            case RM_SAVE_BTN:
+              projector.EasyBiphaseSet();
+              break;
+            }
+            last_btn = 0x00;
+          }
+        }
+#endif
+      }
+      //Serial.print(results.decode_type,HEX);
+      //Serial.print("-");
+      //Serial.println(results.value,HEX);
     }
     irrecv.resume(); // Receive the next value
   }
